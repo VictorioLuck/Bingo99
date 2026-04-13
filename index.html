@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>En_Vivo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Estilos adicionales para el temporizador */
+        .timer-overlay-player {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 55;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        .timer-overlay-player.active {
+            display: flex;
+        }
+        .timer-display-player {
+            font-size: 6rem;
+            font-weight: 800;
+            font-family: 'Courier New', monospace;
+            color: #fbbf24;
+            text-shadow: 0 0 30px rgba(251, 191, 36, 0.8);
+            animation: timerPulsePlayer 1s infinite;
+        }
+        @keyframes timerPulsePlayer {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        .timer-message-player {
+            color: white;
+            font-size: 1.5rem;
+            margin-top: 1rem;
+            text-align: center;
+        }
+        .timer-submessage-player {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div id="pause-overlay" class="overlay-pause">
+        <div class="glass-card p-8 max-w-md mx-4 text-center bingo-pause-alert rounded-2xl">
+            <div class="text-6xl mb-4">🎉</div>
+            <h2 class="text-3xl font-black mb-2 text-white">¡BINGO!</h2>
+            <p id="pause-message" class="text-lg text-white/90 mb-6">Un Jugador a Catado BINGO</p>
+            <p class="text-sm text-white/70 mb-6">El sorteo está en pausa</p>
+            <div class="text-xs text-white/50">Mensaje enviado por WhatsApp</div>
+        </div>
+    </div>
+
+    <!-- Overlay de temporizador para jugadores -->
+    <div id="timer-overlay-player" class="timer-overlay-player">
+        <div class="text-6xl mb-4">⏱️</div>
+        <div id="timer-display-player" class="timer-display-player">30</div>
+        <div class="timer-message-player">El sorteo se reanudará pronto</div>
+        <div class="timer-submessage-player">Tiempo de gracia para verificar cartones</div>
+    </div>
+
+    <div class="max-w-7xl mx-auto">
+        <header class="mb-10 flex justify-between items-end">
+            <div>
+                <h1 class="text-4xl font-extrabold tracking-tight">Bingo<span class="text-blue-500">99</span></h1>
+                <p class="text-slate-400 flex items-center">
+                    <span class="live-indicator"></span> Pantalla de Juego en Vivo
+                </p>
+            </div>
+            <div class="text-right hidden md:block">
+                <p id="reloj" class="text-xl font-mono text-slate-300">00:00:00</p>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div class="lg:col-span-4 space-y-6">
+                <div class="glass-card p-8 text-center border-blue-500/20">
+                    <span class="text-blue-400 text-sm font-bold tracking-widest uppercase mb-4 block italic">Última Balota</span>
+                    <div id="result" class="number-display text-[80px] font-black leading-none my-6 text-white">--</div>
+                    <div class="py-3 px-6 bg-blue-500/10 rounded-full inline-block">
+                        <p class="text-blue-300 text-sm font-medium">Esperando cantada...</p>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold">Mi Cartón</h2>
+                        <button id="reset-card" class="text-xs text-slate-400 hover:text-white transition hidden">🗑️ Borrar mí Carton</button>
+                    </div>
+
+                    <div id="upload-section" class="upload-area">
+                        <input type="file" id="card-upload" accept="image/png" class="hidden">
+                        <div class="text-slate-400">
+                            <svg class="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            <p class="text-sm font-medium mb-1">Arrastra tu cartón PNG aquí</p>
+                            <p class="text-xs opacity-60">o haz clic para seleccionar</p>
+                        </div>
+                    </div>
+
+                    <div id="card-section" class="hidden relative">
+                        <div class="bingo-container" id="bingo-container">
+                            <img id="bingo-card" class="bingo-image" src="" alt="Cartón de Bingo">
+                        </div>
+
+                        <div class="mt-4 flex gap-2">
+                            <button id="undo-chip" class="flex-1 bg-amber-600 hover:bg-amber-500 text-white py-2 px-4 rounded-lg text-sm font-medium transition">↩️ Deshacer</button>
+                            <button id="clear-chips" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-2 px-4 rounded-lg text-sm font-medium transition">Limpiar Fichas</button>
+                        </div>
+
+                        <div class="mt-3">
+                            <button id="btn-bingo" onclick="cantarBingo()" class="bingo-button w-full block text-center py-4 px-6 rounded-xl text-xl font-black text-white uppercase tracking-wider transition cursor-pointer">🎉 ¡BINGO! 🎉</button>
+                        </div>
+
+                        <p class="text-xs text-slate-400 mt-3 text-center">Doble tap en el cartón para agregar ficha • Tap en ficha para marcar/desmarcar</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-8">
+                <div class="glass-card flex flex-col h-[800px]">
+                    <div class="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
+                        <h2 class="text-xl font-semibold">Balotas Cantadas</h2>
+                        <span id="counter" class="bg-slate-700 text-slate-300 px-3 py-1 rounded-full text-xs font-bold">0 Balotas</span>
+                    </div>
+
+                    <div class="overflow-y-auto custom-scroll p-4 flex-1">
+                        <table class="w-full text-left">
+                            <thead class="text-slate-500 text-xs uppercase">
+                                <tr><th class="p-4">Orden</th><th class="p-4">Balota</th><th class="p-4 text-right">Hora</th></tr>
+                            </thead>
+                            <tbody id="lista-historial" class="text-sm"></tbody>
+                        </table>
+                        <div id="empty-state" class="hidden text-center py-20 text-slate-600 italic">El juego no ha comenzado.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button id="emoji-fab" class="emoji-fab" title="Personalizar ficha con emoji">😊</button>
+
+    <div id="emoji-indicator" class="emoji-selected-indicator">
+        <span>Ficha:</span>
+        <span class="emoji-preview" id="current-emoji-preview">🔴</span>
+    </div>
+
+    <div id="emoji-modal" class="emoji-modal-overlay">
+        <div class="emoji-modal-container">
+            <div class="emoji-modal-header">
+                <h3 class="emoji-modal-title">🎨 Personalizar Ficha</h3>
+                <button id="emoji-modal-close" class="emoji-modal-close">×</button>
+            </div>
+            <emoji-picker id="emoji-picker"></emoji-picker>
+            <p class="emoji-modal-info">El emoji seleccionado se aplicará a la próxima ficha que agregues</p>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+    <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
